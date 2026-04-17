@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>audio-similarity-lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/meyda@5.6.3/dist/web/meyda.min.js"></script>
+  <style>
+    :root, [data-theme="light"] {
+      --color-bg:#f7f6f2; --color-surface:#fbfaf7; --color-surface-2:#f1eee9; --color-surface-3:#e8e3db; --color-border:#d8d3ca;
+      --color-text:#1f1d19; --color-muted:#6d675f; --color-faint:#968f85; --color-primary:#0d6b70; --color-primary-2:#1f7a80; --color-orange:#cb7a38; --color-purple:#7b58c4; --color-blue:#509eb7; --shadow:0 8px 24px rgba(35,26,18,.06);
+    }
+    [data-theme="dark"] {
+      --color-bg:#171614; --color-surface:#1d1b19; --color-surface-2:#24211e; --color-surface-3:#2d2824; --color-border:#3a342e;
+      --color-text:#efede8; --color-muted:#b4ada4; --color-faint:#7c766d; --color-primary:#68adb4; --color-primary-2:#88c6cb; --color-orange:#e49b60; --color-purple:#b89df0; --color-blue:#7fc5de; --shadow:0 12px 32px rgba(0,0,0,.24);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%}
+    body{font-family:'Instrument Sans',system-ui,sans-serif;background:var(--color-bg);color:var(--color-text);line-height:1.5}
+    button,input,select{font:inherit;color:inherit} button{cursor:pointer}
+    .app{width:100vw;max-width:100vw;margin:0 auto;padding:16px 20px 32px;box-sizing:border-box;overflow-x:hidden}
+    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:20px}
+    h1{font-size:clamp(24px,7vw,44px);line-height:1;font-weight:700;letter-spacing:-.03em}
+    .lede{margin-top:10px;max-width:80ch;font-size:18px;color:var(--color-muted)}
+    .actions{display:flex;flex-wrap:wrap;gap:10px}
+    .btn{min-height:44px;padding:12px 16px;border-radius:999px;border:1px solid var(--color-border);background:var(--color-surface);box-shadow:var(--shadow)}
+    .btn.primary{background:var(--color-primary);color:#fff;border-color:transparent}.btn.primary:hover{background:var(--color-primary-2)}
+    .layout{display:grid;grid-template-columns:minmax(300px,24vw) minmax(0,1fr);gap:16px;align-items:flex-start;max-width:1220px;margin:0 auto 40px}
+    .stack{display:grid;gap:12px;align-content:start}
+    .panel{background:var(--color-surface);border:1px solid var(--color-border);border-radius:28px;padding:clamp(16px,3vw,22px);box-shadow:var(--shadow)}
+    .panel h2{font-size:30px;line-height:1.05;font-weight:700;letter-spacing:-.03em;margin-bottom:6px}
+    .muted{color:var(--color-muted)} .small{font-size:14px} .tiny{font-size:12px;color:var(--color-muted)}
+    .dropzone{border:1.5px dashed var(--color-border);background:var(--color-surface-2);padding:20px;border-radius:20px}
+    .dropzone input{margin-top:10px;width:100%}
+    .file-list{display:grid;gap:10px;max-height:440px;overflow:auto;padding-right:4px}
+    .file-card{background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:16px;padding:clamp(10px,2.5vw,14px);display:grid;gap:10px}
+    .file-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .file-name-input{flex:1;border:none;background:transparent;font:inherit;color:inherit;min-width:0}.file-name-input:focus{outline:1px solid var(--color-primary);border-radius:6px}
+    .file-actions{display:flex;gap:8px;flex-wrap:wrap}.mini{padding:8px 12px;border-radius:999px;border:1px solid var(--color-border);background:var(--color-surface)}
+    .section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:10px}.section-head .copy{max-width:78ch}
+    .copy p{max-width:72ch}
+    .dashboard-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .metric{background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:16px;padding:clamp(10px,2.5vw,14px)}.metric strong{display:block;font-size:24px;margin-top:4px}
+    .viz-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .viz-card{display:grid;gap:8px}
+    .canvas-frame{max-width:100%;overflow:auto;background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:18px;padding:clamp(4px,1vw,8px)}
+    canvas{display:block;max-width:none}
+    #trajectoryCanvas{width:100%;background:var(--color-surface-2);border-radius:18px;border:1px solid var(--color-border)}
+    .compare-list{display:grid;gap:10px;min-height:0}
+    .compare-row{background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:18px;padding:clamp(10px,2.5vw,14px);display:grid;gap:10px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:var(--color-surface);border:1px solid var(--color-border);font-size:12px;color:var(--color-muted)}
+    .score-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .bar{height:10px;background:var(--color-surface-3);border-radius:999px;overflow:hidden}.bar>span{display:block;height:100%}.overall>span{background:var(--color-blue)}.timbre>span{background:var(--color-primary)}.melody>span{background:var(--color-purple)}.rhythm>span{background:var(--color-orange)}
+    .graph-panel{padding:clamp(12px,3.5vw,20px)}.graph-toolbar{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}.graph-controls{display:grid;grid-template-columns:1fr;gap:12px}.graph-compare{display:grid;gap:8px}.graph-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.graph-actions .btn{padding:7px 10px;font-size:12px;min-width:0;width:auto;white-space:nowrap}.graph-toggles{display:grid;gap:8px;align-content:start}.graph-file-grid{display:flex;flex-wrap:wrap;gap:8px}.graph-file-grid .file-card{flex:0 0 calc(50% - 4px);min-width:160px}.graph-color-row{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}.axis-label-row{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px}.axis-pill{display:inline-flex;align-items:center;padding:8px 12px;border-radius:999px;background:var(--color-surface);border:1px solid var(--color-border);font-size:12px;color:var(--color-text)}.graph-wrap{max-width:100%; background:var(--color-surface)border:1px solid var(--color-border);border-radius:24px;padding:0;overflow:hidden;position:relative}.graph-stage{position:relative;height:clamp(360px, 70vh, 800px);overflow:hidden;touch-action:none}.graph-brand{position:absolute;top:14px;left:18px;z-index:12;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,0.92);backdrop-filter:blur(10px);border:1px solid rgba(17,24,39,0.12);box-shadow:0 10px 35px rgba(15,23,42,0.12);color:#1f2937;font-size:16px;font-weight:800;letter-spacing:0.04em;pointer-events:none}.graph-hint{position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:10px 14px;background:rgba(255,255,255,0.86);backdrop-filter:blur(10px);border:1px solid rgba(17,24,39,0.12);border-radius:999px;box-shadow:0 10px 35px rgba(15,23,42,0.12);font-size:12px;color:#6b7280;pointer-events:none;max-width:min(90vw,760px);text-align:center}.graph-tooltip{position:absolute;display:none;pointer-events:none;z-index:20;min-width:200px;max-width:280px;background:rgba(15,23,42,0.94);color:white;border-radius:12px;padding:10px 12px;box-shadow:0 10px 28px rgba(2,6,23,0.35);font-size:12px;line-height:1.45}@media (max-width: 980px){.graph-toolbar{grid-template-columns:1fr}.graph-controls{grid-template-columns:1fr}.graph-file-grid{grid-template-columns:1fr}.graph-stage{height:760px}.graph-hint{display:none}}
+    .graph-wrap{max-width:100%; background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:24px;overflow:auto;padding:10px} #bottomGraphCanvas{background:#fff;border-radius:16px;width:100%;width:clamp(1600px, 140vw, 2800px); min-width:0}
+    .check{display:inline-flex;align-items:center;gap:6px;padding:0 4px}
+    @media (max-width:980px){.layout{grid-template-columns:1fr}.dashboard-grid{grid-template-columns:repeat(3,minmax(0,1fr))} .viz-grid{grid-template-columns:1fr} h1{font-size:42px;max-width:none}}
+    @media (max-width:760px){.dashboard-grid,.score-grid{grid-template-columns:1fr}.app{padding:16px}.panel{padding:18px}}
+    .pair-conclusion strong{font-weight:700}
+
+    @media (max-width:900px){
+      .layout{grid-template-columns:1fr}
+      .topbar{flex-direction:column;gap:10px}
+      h1{font-size:32px}
+      .dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .graph-stage{height:560px}
+    }
+    @media (max-width:600px){
+      .dashboard-grid{grid-template-columns:1fr 1fr}
+      .graph-stage{height:420px}
+      .graph-toolbar{grid-template-columns:1fr}
+    }
+  
+@media (max-width: 480px) {
+  .app{padding:12px}
+  .panel{padding:16px}
+  .topbar{flex-direction:column;gap:12px}
+  h1{font-size:28px;line-height:1}
+  .lede{font-size:16px}
+  .graph-stage{height:360px}
+  .viz-grid{display:block}
+  .canvas-frame{padding:6px}
+}
+
+
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 1fr !important; }
+  .graph-wrap { max-width: 100%; }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div>
+      <h1>Audio Similarity Lab</h1>
+      <p class="lede">Upload several audio files, inspect beginner-friendly explanations of what each feature means, and compare timbre, melody, and rhythm with a fuller model that separates instrument colour from pitch motion more clearly.</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="themeToggle">&#9680; Theme</button>
+      <button class="btn primary" id="analyzeAllBtn">Analyze all files</button>
+    </div>
+  </header>
+  <main class="layout">
+    <aside class="stack">
+      <section class="panel stack">
+        <div>
+          <h2>Library</h2>
+          <p class="muted small">Add files, rename them, pick a focused file, or remove one. Short clips are easiest for quick testing and comparison.</p>
+        </div>
+        <label class="dropzone">
+          <strong>Add audio files</strong>
+          <p class="small muted">The browser decodes common audio formats directly, then extracts time-varying audio features in your tab.</p>
+          <input id="fileInput" type="file" accept="audio/*" multiple />
+        </label>
+        <div class="file-list" id="fileList"></div>
+      </section>
+    </aside>
+    <section class="stack">
+      <section class="panel stack">
+        <div class="section-head"><div class="copy"><h2>Pair breakdowns</h2><p class="muted small">These pair scores are ranked relative to the current uploaded batch, but the overall score now leans more heavily on melody and harmony than timbre so instrumentation changes matter less than the musical idea.</p></div><div class="tiny">Top matches first</div></div>
+        <div class="compare-list" id="compareList"></div>
+        <div class="file-card" style="margin-top:4px">
+          <strong>Similarity note</strong>
+          <p class="small muted">These are experimental browser-side heuristic scores. They are useful for relative comparison, not copyright or plagiarism judgement.</p>
+        </div>
+      </section>
+      <section class="panel graph-panel">
+        <div class="graph-toolbar">
+          <div class="copy">
+            <h2>Time, frequency, and decibels</h2>
+            <p class="muted small">Compare multiple analyzed files on the same graph. Time runs left to right, frequency rises above the centre line, and decibel strength grows below it.</p>
+          </div>
+          <div class="graph-controls">
+            <div class="graph-compare">
+              <div class="tiny">Tracks to compare</div>
+              <div id="graphFileChecks" class="graph-file-grid"></div>
+            </div>
+            <div class="graph-actions">
+              <button class="btn" id="graphPlayBtn">&#9654; Play selected</button>
+              <button class="btn" id="graphResetBtn">Reset</button>
+              <button class="btn" id="zoomInBtn">&#65291; Zoom</button>
+              <button class="btn" id="zoomOutBtn">&#65293; Zoom</button>
+            </div>
+            <div class="graph-toggles">
+              <label class="check"><input type="checkbox" id="showGridCheckbox" checked> Grid</label>
+              <label class="check"><input type="checkbox" id="flipAxesCheckbox"> Flip vertical axes</label>
+            </div>
+          </div>
+        </div>
+        <div class="graph-wrap"><div class="graph-stage"><canvas id="bottomGraphCanvas" width="2400" height="920"></canvas><div class="graph-brand">Frequency and Decibel Graph</div><div class="graph-hint">Drag to pan &middot; Pinch or Ctrl/Cmd + wheel to zoom &middot; Hover for point details</div><div id="graphTooltip" class="graph-tooltip"></div></div></div>
+      </section>
+      <section class="panel stack">
+        <div class="section-head">
+          <div class="copy">
+            <h2>Feature dashboard</h2>
+            <p class="muted small">This section explains one selected file. The score cards are summaries, but the descriptions underneath are there for people who do not already know audio-analysis terms.</p>
+          </div>
+          <select id="focusSelect" class="btn"></select>
+        </div>
+        <div class="dashboard-grid">
+          <div class="metric"><div class="tiny">Timbre signature</div><strong id="timbreValue">&mdash;</strong><div class="tiny">A rough fingerprint of tone colour and spectral shape.</div></div>
+          <div class="metric"><div class="tiny">RMS energy</div><strong id="rmsValue">&mdash;</strong><div class="tiny">Average loudness energy across the clip.</div></div>
+          <div class="metric"><div class="tiny">Zero-crossing rate</div><strong id="zcrValue">&mdash;</strong><div class="tiny">Higher values often mean a rougher or brighter texture.</div></div>
+          <div class="metric"><div class="tiny">Spectral centroid</div><strong id="centroidValue">&mdash;</strong><div class="tiny">A rough brightness centre of the spectrum.</div></div>
+          <div class="metric"><div class="tiny">Onset density</div><strong id="onsetValue">&mdash;</strong><div class="tiny">How many attacks or note starts happen per second.</div></div>
+          <div class="metric"><div class="tiny">Estimated tempo</div><strong id="tempoValue">&mdash;</strong><div class="tiny">A rough beat estimate from repeated attacks.</div></div>
+        </div>
+        <div>
+          <div class="section-head"><div class="copy"><h2>Feature trajectories</h2><p class="muted small">These lines show three changing features across time: centroid is the brightness centre of the sound, flux is how much the spectrum changes from one moment to the next, and flatness shows whether the sound is tone-like or noise-like.</p></div></div>
+          <canvas id="trajectoryCanvas" width="1080" height="270"></canvas>
+        </div>
+        <div class="viz-grid">
+          <div class="viz-card">
+            <div class="section-head"><div class="copy"><h2>MFCC heatmap</h2><p class="muted small">MFCC rows are a compact description of tone colour.</p></div><div class="tiny">13 timbre rows &times; time</div></div>
+            <div class="canvas-frame"><canvas id="mfccCanvas" width="1040" height="250"></canvas></div>
+          </div>
+          <div class="viz-card">
+            <div class="section-head"><div class="copy"><h2>Pitch register heatmap</h2><p class="muted small">This map keeps absolute pitch height instead of collapsing everything into only 12 pitch classes.</p></div><div class="tiny">pitch height &times; time</div></div>
+            <div class="canvas-frame"><canvas id="pitchHeatmapCanvas" width="1040" height="250"></canvas></div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+</div>
+<script>
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const state = { files: [], focusedId: null, theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', graph:{zoom:1, showGrid:true, flipped:false, selectedIds:[], hoverPoints:[], panX:0, dragging:false, dragOrigin:null, pinchDist:null, trackColors:{}, playheadTime:null, playheadRaf:null}, playing:null };
+document.documentElement.setAttribute('data-theme', state.theme);
+const $ = s => document.querySelector(s);
+function mean(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0}
+function std(arr){if(!arr.length)return 0; const m=mean(arr); return Math.sqrt(mean(arr.map(v=>(v-m)**2)))}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+function normalizeSeries(arr){const vals=arr.filter(v=>Number.isFinite(v)); if(!vals.length) return arr.map(()=>0); const min=Math.min(...vals), max=Math.max(...vals); if(max===min) return arr.map(()=>0.5); return arr.map(v=>Number.isFinite(v)?(v-min)/(max-min):0)}
+function cosine(a,b){const n=Math.min(a.length,b.length); let dot=0,na=0,nb=0; for(let i=0;i<n;i++){dot+=a[i]*b[i]; na+=a[i]*a[i]; nb+=b[i]*b[i];} return (!na||!nb)?0:dot/Math.sqrt(na*nb)}
+function css(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim()}
+function escapeHtml(value){return String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':'&quot;',"'":'&#39;'}[c]))}
+function currentFile(){return state.files.find(f=>f.id===state.focusedId)||null}
+function graphFiles(){ return (state.graph.selectedIds||[]).map(id=>state.files.find(f=>f.id===id)).filter(f=>f&&f.analysis); }
+function trackColorFor(id,index){ if(!state.graph.trackColors[id]){ const defaults=['#2563eb','#dc2626','#16a34a','#9333ea']; const c=defaults[index%defaults.length]; state.graph.trackColors[id]={freq:c, db:c}; } return state.graph.trackColors[id]; }
+function resample(arr, n){ if(!arr.length) return Array(n).fill(0); if(arr.length===n) return arr.slice(); const out=[]; for(let i=0;i<n;i++){ const pos=i*(arr.length-1)/Math.max(1,n-1); const lo=Math.floor(pos), hi=Math.min(arr.length-1,Math.ceil(pos)); const t=pos-lo; out.push(arr[lo]*(1-t)+arr[hi]*t);} return out; }
+function corrAtShift(a,b,shift){ let num=0,da=0,db=0; for(let i=0;i<a.length;i++){ const j=i+shift; if(j<0||j>=b.length) continue; num+=a[i]*b[j]; da+=a[i]*a[i]; db+=b[j]*b[j]; } return (!da||!db)?0:num/Math.sqrt(da*db); }
+function bestShiftedCorrelation(a,b,maxShift){ let best=-1; for(let s=-maxShift;s<=maxShift;s++) best=Math.max(best,corrAtShift(a,b,s)); return Math.max(0,best); }
+function median(arr){ if(!arr.length)return 0; const s=[...arr].sort((a,b)=>a-b); const mid=Math.floor(s.length/2); return s.length%2?s[mid]:(s[mid-1]+s[mid])/2; }
+function smooth(arr, w=5){ return arr.map((_,i)=>{ const slice=arr.slice(Math.max(0,i-w), Math.min(arr.length,i+w+1)); return mean(slice); }); }
+function contourBinsFromMidi(midiTrack){ const vals=[]; for(let i=1;i<midiTrack.length;i++){ const a=midiTrack[i-1], b=midiTrack[i]; if(a==null||b==null) continue; const d=b-a; if(Math.abs(d)<0.5) vals.push(0); else if(d>0&&d<2) vals.push(1); else if(d>=2) vals.push(2); else if(d<0&&d>-2) vals.push(-1); else vals.push(-2); } return vals; }
+function ngramHistogram(seq,n=3){ const map=new Map(); if(seq.length<n) return []; for(let i=0;i<=seq.length-n;i++){ const key=seq.slice(i,i+n).join(','); map.set(key,(map.get(key)||0)+1); } const vals=[...map.values()]; const sum=vals.reduce((a,b)=>a+b,0)||1; return vals.sort((a,b)=>b-a).slice(0,40).map(v=>v/sum); }
+function histogramScore(a,b){ if(!a.length||!b.length) return 0; const aa=resample(a,Math.max(a.length,b.length)); const bb=resample(b,Math.max(a.length,b.length)); return cosine(aa,bb); }
+function circularShiftBestScore(a,b,maxShift=24){ let best=-1; for(let s=-maxShift;s<=maxShift;s++){ const shifted=[]; for(let i=0;i<b.length;i++){ let j=(i+s)%b.length; if(j<0) j+=b.length; shifted.push(b[j]); } best=Math.max(best, cosine(a, shifted)); } return Math.max(0,best); }
+function heatColor(v){ const hue=(1-v)*240; return `hsl(${hue} 72% 52%)`; }
+function extractNoteEvents(midiTrack,onsetStrength){ const events=[]; let last=null; for(let i=0;i<midiTrack.length;i++){ const m=midiTrack[i]; const onset=(onsetStrength[i]||0)>0; if(m==null) continue; if(last==null || Math.abs(m-last)>=0.8 || onset){ events.push({idx:i,midi:m}); last=m; } } return events; }
+function eventSequenceFeatures(events){ if(events.length<2) return {intervals:[],durations:[],signed:[]}; const intervals=[], durations=[], signed=[]; for(let i=1;i<events.length;i++){ const dp=events[i].midi-events[i-1].midi; const dt=events[i].idx-events[i-1].idx; signed.push(clamp(dp,-12,12)); intervals.push(clamp(Math.abs(dp),0,12)); durations.push(clamp(dt,1,64)); } return {intervals,durations,signed}; }
+function seqDistanceScore(a,b,maxVal){ const n=Math.min(a.length,b.length); if(!n) return 0; let s=0; for(let i=0;i<n;i++) s += Math.abs(a[i]-b[i]); const avg=s/n; return clamp(1-avg/maxVal,0,1); }
+function scaleValues(values, exponent=1.0, floor=0.05, ceil=0.95){ if(!values.length) return []; const min=Math.min(...values), max=Math.max(...values); if(max-min < 1e-9) return values.map(()=>0.5*(floor+ceil)); return values.map(v=>{ const t=clamp((v-min)/(max-min),0,1); const curved=t ** exponent; return floor + (ceil-floor)*curved; }); }
+
+$('#themeToggle').addEventListener('click', ()=>{state.theme=state.theme==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',state.theme);renderAll();});
+$('#fileInput').addEventListener('change', e=>{ for(const file of Array.from(e.target.files||[])){ state.files.push({id:crypto.randomUUID(), file, name:file.name, status:'ready', analysis:null, buffer:null}); } if(!state.focusedId&&state.files[0]) state.focusedId=state.files[0].id; renderAll(); e.target.value='';});
+$('#analyzeAllBtn').addEventListener('click', analyzeAll);
+$('#focusSelect').addEventListener('change', e=>{state.focusedId=e.target.value; renderAll();});
+$('#showGridCheckbox').addEventListener('change', e=>{state.graph.showGrid=e.target.checked; renderBottomGraph();});
+$('#flipAxesCheckbox').addEventListener('change', e=>{state.graph.flipped=e.target.checked; renderBottomGraph();});
+$('#zoomInBtn').addEventListener('click', ()=>{state.graph.zoom=Math.min(8,state.graph.zoom*1.4); renderBottomGraph();});
+$('#zoomOutBtn').addEventListener('click', ()=>{state.graph.zoom=Math.max(0.5,state.graph.zoom/1.4); renderBottomGraph();});
+$('#graphResetBtn').addEventListener('click', ()=>{state.graph.zoom=1; state.graph.panX=0; renderBottomGraph();});
+$('#graphPlayBtn').addEventListener('click', async ()=>{const btn=$('#graphPlayBtn'); if(state.playing){ try{state.playing.source.stop();}catch(e){} if(state.graph.playheadRaf) cancelAnimationFrame(state.graph.playheadRaf); state.graph.playheadRaf=null; state.graph.playheadTime=null; state.playing=null; btn.textContent='▶ Play selected'; renderBottomGraph(); return; } const f=graphFiles()[0]; if(!f||!f.buffer) return; await audioContext.resume(); const src=audioContext.createBufferSource(); src.buffer=f.buffer; src.connect(audioContext.destination); const startAt=0; const startedAt=audioContext.currentTime; src.start(0,startAt); state.playing={id:f.id,source:src,startedAt,startAt,duration:f.buffer.duration}; const tick=()=>{ if(!state.playing || state.playing.source!==src) return; state.graph.playheadTime = state.playing.startAt + (audioContext.currentTime - state.playing.startedAt); renderBottomGraph(); if(state.graph.playheadTime < state.playing.duration){ state.graph.playheadRaf=requestAnimationFrame(tick); } }; tick(); btn.textContent='■ Stop'; src.onended=()=>{ if(state.playing&&state.playing.source===src){ state.playing=null; if(state.graph.playheadRaf) cancelAnimationFrame(state.graph.playheadRaf); state.graph.playheadRaf=null; state.graph.playheadTime=null; btn.textContent='▶ Play selected'; renderBottomGraph(); }};});
+const graphCanvas = $('#bottomGraphCanvas'); const graphStage = graphCanvas.parentElement; const graphTooltip = $('#graphTooltip'); function showGraphTooltip(hit,x,y){ if(!graphTooltip) return; if(!hit){ graphTooltip.style.display='none'; return; } graphTooltip.style.display='block'; graphTooltip.style.left=Math.max(10,x+16)+'px'; graphTooltip.style.top=Math.max(10,y+16)+'px'; graphTooltip.innerHTML='<div style="font-weight:700;margin-bottom:4px">'+escapeHtml(hit.file)+'</div><div><strong>Metric:</strong> '+hit.type+'</div><div><strong>Time:</strong> '+hit.time.toFixed(2)+'s</div><div><strong>Value:</strong> '+hit.value.toFixed(1)+' '+hit.unit+'</div>'; } function nearestGraphHit(mx,my){ let best=null,bestDist=14; for(const p of state.graph.hoverPoints||[]){ const d=Math.hypot(mx-p.x,my-p.y); if(d<bestDist){ bestDist=d; best=p; } } return best; } graphCanvas.addEventListener('mousedown', e=>{ state.graph.dragging=true; state.graph.dragOrigin={x:e.clientX, panX:state.graph.panX}; graphCanvas.style.cursor='grabbing'; e.preventDefault(); }); window.addEventListener('mouseup', ()=>{ state.graph.dragging=false; state.graph.dragOrigin=null; graphCanvas.style.cursor='grab'; }); window.addEventListener('mousemove', e=>{ if(state.graph.dragging && state.graph.dragOrigin){ state.graph.panX = Math.max(-2200, Math.min(140, state.graph.dragOrigin.panX + (e.clientX - state.graph.dragOrigin.x))); renderBottomGraph(); return; } }); graphCanvas.addEventListener('mousemove', e=>{ const rect=graphCanvas.getBoundingClientRect(); const sx=graphCanvas.width/rect.width, sy=graphCanvas.height/rect.height; const mx=(e.clientX-rect.left)*sx, my=(e.clientY-rect.top)*sy; showGraphTooltip(nearestGraphHit(mx,my), e.clientX-rect.left, e.clientY-rect.top); }); graphCanvas.addEventListener('mouseleave', ()=>showGraphTooltip(null,0,0)); graphCanvas.addEventListener('wheel', e=>{ const isZoom=e.ctrlKey||e.metaKey; if(isZoom){ e.preventDefault(); state.graph.zoom = e.deltaY<0 ? Math.min(8,state.graph.zoom*1.12) : Math.max(0.5,state.graph.zoom/1.12); renderBottomGraph(); return; } if(Math.abs(e.deltaX)>Math.abs(e.deltaY) || state.graph.zoom>1){ e.preventDefault(); state.graph.panX = Math.max(-2200, Math.min(140, state.graph.panX - (Math.abs(e.deltaX)>0?e.deltaX:e.deltaY))); renderBottomGraph(); } }, {passive:false}); graphStage.addEventListener('touchstart', e=>{ if(e.touches.length===1){ state.graph.dragging=true; state.graph.dragOrigin={x:e.touches[0].clientX, panX:state.graph.panX}; } else if(e.touches.length===2){ const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY; state.graph.pinchDist=Math.hypot(dx,dy); state.graph.dragging=false; } }, {passive:false}); graphStage.addEventListener('touchmove', e=>{ if(e.touches.length===1 && state.graph.dragOrigin){ e.preventDefault(); state.graph.panX = Math.max(-2200, Math.min(140, state.graph.dragOrigin.panX + (e.touches[0].clientX - state.graph.dragOrigin.x))); renderBottomGraph(); } else if(e.touches.length===2){ e.preventDefault(); const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY; const dist=Math.hypot(dx,dy); if(state.graph.pinchDist){ const ratio=dist/state.graph.pinchDist; state.graph.zoom=Math.max(0.5,Math.min(8,state.graph.zoom*ratio)); } state.graph.pinchDist=dist; renderBottomGraph(); } }, {passive:false}); graphStage.addEventListener('touchend', ()=>{ state.graph.dragging=false; state.graph.dragOrigin=null; state.graph.pinchDist=null; });
+
+async function analyzeAll(){
+  for(const item of state.files){
+    if(item.analysis) continue;
+    item.status='analyzing'; renderLibrary();
+    try{
+      const ab=await item.file.arrayBuffer();
+      item.buffer=await audioContext.decodeAudioData(ab.slice(0));
+      item.analysis=await analyzeBuffer(item.buffer);
+      item.status='done';
+    } catch(err){ console.error(err); item.status='error'; }
+    renderAll();
+  }
+}
+
+async function analyzeBuffer(audioBuffer){
+  const channel=audioBuffer.getChannelData(0), sr=audioBuffer.sampleRate, frameSize=2048, hop=512;
+  const rms=[], zcr=[], centroid=[], flatness=[], rolloff=[], flux=[], mfcc=[], chroma=[], freqTrack=[], midiTrack=[], dbTrack=[];
+  let prevAmp=null;
+  for(let start=0; start+frameSize<=channel.length; start+=hop){
+    const frame=channel.slice(start,start+frameSize);
+    const f=Meyda.extract(['rms','zcr','spectralCentroid','spectralFlatness','spectralRolloff','mfcc','chroma','amplitudeSpectrum'], frame, {bufferSize:frameSize,sampleRate:sr,numberOfMFCCCoefficients:13,melBands:26});
+    if(!f) continue;
+    const amp=f.amplitudeSpectrum||[];
+    rms.push(f.rms||0); zcr.push(f.zcr||0); centroid.push((f.spectralCentroid||0)/1000); flatness.push(f.spectralFlatness||0); rolloff.push((f.spectralRolloff||0)/1000);
+    mfcc.push((f.mfcc||Array(13).fill(0)).slice(0,13)); chroma.push((f.chroma||Array(12).fill(0)).slice(0,12));
+    if(prevAmp && prevAmp.length===amp.length){ let v=0; for(let i=0;i<amp.length;i++) v += Math.max(0,(amp[i]||0)-(prevAmp[i]||0)); flux.push(v/Math.max(1,amp.length)); } else flux.push(0);
+    prevAmp = amp.slice();
+    let maxIndex=0; for(let i=1;i<amp.length;i++) if((amp[i]||0)>(amp[maxIndex]||0)) maxIndex=i;
+    const freq=maxIndex*sr/frameSize;
+    const safe=freq>50&&freq<3500?freq:0;
+    freqTrack.push(safe);
+    midiTrack.push(safe?clamp(69+12*Math.log2(safe/440),24,108):null);
+    dbTrack.push(f.rms>0?clamp(20*Math.log10(f.rms)+60,0,60):0);
+  }
+  const onsetThreshold=mean(flux)+std(flux)*0.75;
+  const onsetStrength=flux.map(v=>Math.max(0,v-onsetThreshold));
+  const onsetPeaks=onsetStrength.map((v,i,a)=> v>0&&v>=(a[i-1]||0)&&v>=(a[i+1]||0)?1:0);
+  const onsetTimes=onsetPeaks.map((v,i)=>v?i*hop/sr:null).filter(v=>v!=null);
+  const intervals=onsetTimes.slice(1).map((t,i)=>t-onsetTimes[i]).filter(v=>v>0.08&&v<2.2);
+  const tempo=intervals.length?clamp(60/median(intervals),0,220):0;
+  const onsetDensity=audioBuffer.duration?onsetTimes.length/audioBuffer.duration:0;
+  const mfccMean=Array.from({length:13},(_,i)=>mean(mfcc.map(r=>r[i]||0)));
+  const mfccStd=Array.from({length:13},(_,i)=>std(mfcc.map(r=>r[i]||0)));
+  const centroidSm=smooth(normalizeSeries(centroid),4), flatSm=smooth(normalizeSeries(flatness),4), zcrSm=smooth(normalizeSeries(zcr),4);
+  const timbreWindowCurve=resample(centroidSm.map((v,i)=>0.45*v+0.35*flatSm[i]+0.2*zcrSm[i]), 64);
+  const timbreVector=[mean(centroid), mean(flatness), mean(rolloff), std(centroid), std(flatness), std(rolloff), mean(zcr), std(zcr), ...mfccMean.slice(1,9), ...mfccStd.slice(1,9)];
+  const harmonicProfile=Array.from({length:12},(_,i)=>mean(chroma.map(r=>r[i]||0)));
+  const hSum=harmonicProfile.reduce((a,b)=>a+b,0)||1;
+  const harmonicVector=harmonicProfile.map(v=>v/hSum);
+  const chromaPeakSeq=chroma.map(r=>{ let idx=0; for(let i=1;i<r.length;i++) if((r[i]||0)>(r[idx]||0)) idx=i; return idx; });
+  const chromaStepHist=Array(12).fill(0);
+  for(let i=1;i<chromaPeakSeq.length;i++){ const d=(chromaPeakSeq[i]-chromaPeakSeq[i-1]+12)%12; chromaStepHist[d] += 1; }
+  const csSum=chromaStepHist.reduce((a,b)=>a+b,0)||1;
+  const chromaStepVector=chromaStepHist.map(v=>v/csSum);
+  const validMidi=midiTrack.filter(v=>v!=null);
+  const pitchMin=validMidi.length?Math.min(...validMidi):null, pitchMax=validMidi.length?Math.max(...validMidi):null;
+  const pitchRange=validMidi.length?(pitchMax-pitchMin):0;
+  const pitchBins=Array(85).fill(0); midiTrack.forEach(v=>{ if(v!=null){ pitchBins[Math.max(0,Math.min(84,Math.round(v)-24))]+=1; }});
+  const pSum=pitchBins.reduce((a,b)=>a+b,0)||1; const pitchVector=pitchBins.map(v=>v/pSum);
+  const contourSeq=contourBinsFromMidi(midiTrack);
+  const contourHist=[-2,-1,0,1,2].map(k=> contourSeq.filter(v=>v===k).length / Math.max(1,contourSeq.length));
+  const pitchContourCurve=resample(contourSeq.map(v=>(v+2)/4), 96);
+  const signedStepSeq=[];
+  for(let i=1;i<midiTrack.length;i++){ const a=midiTrack[i-1], b=midiTrack[i]; if(a!=null&&b!=null) signedStepSeq.push(clamp(b-a,-12,12)); }
+  const signedStepCurve=resample(signedStepSeq.map(v=>(v+12)/24), 96);
+  const intervalSeq=[]; for(let i=1;i<midiTrack.length;i++){ const a=midiTrack[i-1], b=midiTrack[i]; if(a!=null&&b!=null) intervalSeq.push(clamp(Math.abs(b-a),0,11)); }
+  const intervalHist=Array(12).fill(0); intervalSeq.forEach(v=> intervalHist[Math.floor(v)] += 1); const iSum=intervalHist.reduce((a,b)=>a+b,0)||1; const intervalVector=intervalHist.map(v=>v/iSum);
+  const ngramVector=ngramHistogram(contourSeq,3);
+  const noteEvents=extractNoteEvents(midiTrack,onsetStrength);
+  const eventFeatures=eventSequenceFeatures(noteEvents);
+  const eventIntervalCurve=resample(eventFeatures.intervals.map(v=>v/12), 48);
+  const eventDurationCurve=resample(eventFeatures.durations.map(v=>Math.min(v,32)/32), 48);
+  const eventSignedCurve=resample(eventFeatures.signed.map(v=>(v+12)/24), 48);
+  const timbreSignature=Math.round(clamp(58 + (mean(rms)*70) - (mean(flatness)*18) - (std(flatness)*12) - (std(centroid)*3), 5, 94));
+  return {durationSec:audioBuffer.duration, series:{rms,zcr,centroid,flatness,rolloff,flux,onsetStrength,freqTrack,midiTrack,dbTrack,mfcc}, summary:{timbreSignature,rms:mean(rms),zcr:mean(zcr),centroid:mean(centroid),onsetDensity,tempo,pitchMin,pitchMax,pitchRange,pitchCenter:validMidi.length?mean(validMidi):null,noteEventCount:noteEvents.length}, vectors:{timbreVector,timbreWindowCurve,harmonicVector,chromaStepVector,pitchVector,contourHist,pitchContourCurve,signedStepCurve,intervalVector,ngramVector,eventIntervalCurve,eventDurationCurve,eventSignedCurve,rhythmCurve:resample(normalizeSeries(onsetStrength),128)}};
+}
+
+function compareAnalysesRaw(a,b){
+  const staticTimbre = clamp(cosine(a.vectors.timbreVector,b.vectors.timbreVector),0,1);
+  const dynamicTimbre = clamp(bestShiftedCorrelation(a.vectors.timbreWindowCurve,b.vectors.timbreWindowCurve,10),0,1);
+  const centroidGap = Math.abs((a.summary.centroid||0)-(b.summary.centroid||0));
+  const zcrGap = Math.abs((a.summary.zcr||0)-(b.summary.zcr||0));
+  const spectralMatch = clamp(1 - Math.min(1, (centroidGap/2.4) + (zcrGap/0.24)),0,1);
+  const timbre = clamp((0.52*staticTimbre + 0.20*dynamicTimbre + 0.28*spectralMatch) ** 1.02,0,1);
+  const contourScore = clamp(bestShiftedCorrelation(a.vectors.pitchContourCurve,b.vectors.pitchContourCurve,3),0,1);
+  const signedStepScore = clamp(bestShiftedCorrelation(a.vectors.signedStepCurve,b.vectors.signedStepCurve,3),0,1);
+  const intervalScore = clamp(cosine(a.vectors.intervalVector,b.vectors.intervalVector),0,1);
+  const eventIntervalScore = clamp(bestShiftedCorrelation(a.vectors.eventIntervalCurve,b.vectors.eventIntervalCurve,2),0,1);
+  const eventSignedScore = clamp(bestShiftedCorrelation(a.vectors.eventSignedCurve,b.vectors.eventSignedCurve,2),0,1);
+  const eventDurationScore = clamp(bestShiftedCorrelation(a.vectors.eventDurationCurve,b.vectors.eventDurationCurve,2),0,1);
+  const contourHistScore = clamp(cosine(a.vectors.contourHist,b.vectors.contourHist),0,1);
+  const centerGap = Math.abs((a.summary.pitchCenter??0)-(b.summary.pitchCenter??0));
+  const registerPenalty = clamp(1 - Math.min(1, centerGap/10),0,1);
+  const melodicCore = Math.min(intervalScore, eventIntervalScore, eventSignedScore);
+  const melody = clamp((0.10*contourScore+0.12*signedStepScore+0.20*intervalScore+0.24*eventIntervalScore+0.20*eventSignedScore+0.08*eventDurationScore+0.04*contourHistScore+0.02*registerPenalty)*(0.82+0.18*melodicCore),0,1);
+  const harmonicScore = clamp(circularShiftBestScore(a.vectors.harmonicVector,b.vectors.harmonicVector,11),0,1);
+  const chromaStepScore = clamp(cosine(a.vectors.chromaStepVector,b.vectors.chromaStepVector),0,1);
+  const contourAsTonalScore = clamp(cosine(a.vectors.contourHist,b.vectors.contourHist),0,1);
+  const harmony = clamp((0.64*harmonicScore + 0.24*chromaStepScore + 0.12*contourAsTonalScore) ** 0.95,0,1);
+  return { timbre, melody, rhythm:harmony, overall:0 };
+}
+
+function buildNormalizedPairs(analyzed){
+  const rawPairs=[];
+  for(let i=0;i<analyzed.length;i++){
+    for(let j=i+1;j<analyzed.length;j++){
+      const raw = compareAnalysesRaw(analyzed[i].analysis, analyzed[j].analysis);
+      rawPairs.push({a:analyzed[i], b:analyzed[j], raw});
+    }
+  }
+  const timbres = scaleValues(rawPairs.map(p=>p.raw.timbre), 0.98, 0.15, 0.88);
+  const melodies = scaleValues(rawPairs.map(p=>p.raw.melody), 1.02, 0.12, 0.90);
+  const harmonies = scaleValues(rawPairs.map(p=>p.raw.rhythm), 0.96, 0.15, 0.92);
+  return rawPairs.map((p,idx)=>{
+    const timbre = clamp(0.34*timbres[idx] + 0.66*p.raw.timbre, 0.10, 0.88);
+    const melody = clamp(0.30*melodies[idx] + 0.70*p.raw.melody, 0.14, 0.94);
+    const harmony = clamp(0.24*harmonies[idx] + 0.76*p.raw.rhythm, 0.18, 0.95);
+    const overallRaw = 0.18*timbre + 0.39*melody + 0.43*harmony;
+    const overall = clamp(0.10 + 0.76*overallRaw, 0.10, 0.93);
+    return {a:p.a, b:p.b, timbre, melody, rhythm:harmony, overall};
+  });
+}
+
+function syncGraphFileChecks(){ const box=$('#graphFileChecks'); if(!box) return; const analyzed=state.files.filter(f=>f.analysis); if(!state.graph.selectedIds.length && analyzed.length) state.graph.selectedIds=analyzed.map(f=>f.id); state.graph.selectedIds=state.graph.selectedIds.filter(id=>analyzed.some(f=>f.id===id)); box.innerHTML = analyzed.length ? analyzed.map((f,idx)=>{ const colors=trackColorFor(f.id,idx); return `<div class="file-card" style="margin:0;padding:10px"><label style="display:flex;align-items:center;gap:8px;font-size:12px"><input type="checkbox" value="${f.id}" ${state.graph.selectedIds.includes(f.id)?'checked':''}}> <span class="grow">${escapeHtml(f.name)}</span></label><div class="graph-color-row" style="margin-top:8px"><label class="tiny" style="display:flex;align-items:center;gap:6px">Freq <input type="color" data-color-type="freq" data-id="${f.id}" value="${colors.freq}"></label><label class="tiny" style="display:flex;align-items:center;gap:6px">dB <input type="color" data-color-type="db" data-id="${f.id}" value="${colors.db}"></label></div></div>`; }).join('') : '<div class="small muted">Analyze at least one file to compare it here.</div>'; box.querySelectorAll('input[type="checkbox"]').forEach(input=>input.addEventListener('change', ()=>{ state.graph.selectedIds=[...box.querySelectorAll('input[type="checkbox"]:checked')].map(el=>el.value); renderBottomGraph(); })); box.querySelectorAll('input[type="color"]').forEach(input=>input.addEventListener('input', ()=>{ const id=input.dataset.id, type=input.dataset.colorType; trackColorFor(id,0)[type]=input.value; renderBottomGraph(); })); }
+function syncSelects(){ const opts=state.files.map(item=>`<option value="${item.id}">${escapeHtml(item.name)}</option>`).join(''); $('#focusSelect').innerHTML=opts; if(state.focusedId) $('#focusSelect').value=state.focusedId; }
+function renderLibrary(){ const el=$('#fileList'); if(!state.files.length){ el.innerHTML='<div class="file-card"><div class="muted small">No files added yet.</div></div>'; return; } el.innerHTML=state.files.map(item=>`<article class="file-card"><div class="file-top"><input class="file-name-input" data-id="${item.id}" value="${escapeHtml(item.name)}"><span class="tiny">${item.status}</span></div><div class="tiny">${item.analysis?item.analysis.durationSec.toFixed(1)+' s':'not analyzed yet'}</div><div class="file-actions"><button class="mini" data-focus="${item.id}">Focus</button><button class="mini" data-remove="${item.id}">Remove</button></div></article>`).join(''); el.querySelectorAll('[data-focus]').forEach(btn=>btn.addEventListener('click',()=>{state.focusedId=btn.dataset.focus; renderAll();})); el.querySelectorAll('[data-remove]').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.remove; if(state.playing && state.playing.id===id){ try{state.playing.source.stop();}catch(e){} state.playing=null; $('#graphPlayBtn').textContent='▶ Play'; } state.files=state.files.filter(f=>f.id!==id); if(state.focusedId===id) state.focusedId=state.files[0]?.id||null; renderAll();})); el.querySelectorAll('.file-name-input').forEach(inp=>inp.addEventListener('change',()=>{const f=state.files.find(x=>x.id===inp.dataset.id); if(f) f.name=inp.value; renderAll();})); }
+function renderDashboard(){ syncSelects(); const file=currentFile(); const a=file?.analysis; const ids=['timbreValue','rmsValue','zcrValue','centroidValue','onsetValue','tempoValue']; if(!a){ ids.forEach(id=>$('#'+id).textContent='—'); clearCanvases(); return; } $('#timbreValue').textContent=a.summary.timbreSignature + '%'; $('#rmsValue').textContent=a.summary.rms.toFixed(3); $('#zcrValue').textContent=a.summary.zcr.toFixed(3); $('#centroidValue').textContent=a.summary.centroid.toFixed(2) + ' kHz'; $('#onsetValue').textContent=a.summary.onsetDensity.toFixed(2) + '/s'; $('#tempoValue').textContent=a.summary.tempo ? Math.round(a.summary.tempo) + ' BPM' : '—'; drawTrajectories(a.series); drawMfccHeatmap(a.series); drawPitchHeatmap(a.series); }
+function clearCanvases(){ ['trajectoryCanvas','mfccCanvas','pitchHeatmapCanvas'].forEach(id=>{ const c=document.getElementById(id),x=c.getContext('2d'); x.clearRect(0,0,c.width,c.height); x.fillStyle=css('--color-surface-2'); x.fillRect(0,0,c.width,c.height); }); }
+function drawTrajectories(series){ const c=$('#trajectoryCanvas'),x=c.getContext('2d'); const w=c.width,h=c.height,m={l:40,r:20,t:18,b:42}; x.clearRect(0,0,w,h); x.fillStyle=css('--color-surface-2'); x.fillRect(0,0,w,h); x.strokeStyle=css('--color-border'); x.lineWidth=1; for(let i=0;i<5;i++){ const y=m.t+((h-m.t-m.b)/4)*i; x.beginPath(); x.moveTo(m.l,y); x.lineTo(w-m.r,y); x.stroke(); } const lines=[{name:'Centroid',d:normalizeSeries(series.centroid),c:css('--color-primary')},{name:'Flux',d:normalizeSeries(series.flux),c:css('--color-orange')},{name:'Flatness',d:normalizeSeries(series.flatness),c:css('--color-purple')}]; for(const line of lines){ x.beginPath(); x.strokeStyle=line.c; x.lineWidth=2.2; line.d.forEach((v,i)=>{ const px=m.l+(i/Math.max(1,line.d.length-1))*(w-m.l-m.r); const py=h-m.b-v*(h-m.t-m.b); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke(); } let lx=m.l; x.font='500 12px "Instrument Sans", system-ui, sans-serif'; x.textBaseline='middle'; lines.forEach(line=>{ x.fillStyle=line.c; x.fillRect(lx,h-20,12,12); x.fillStyle=css('--color-text'); x.fillText(line.name,lx+18,h-14); lx += 116; }); }
+function drawMfccHeatmap(series){ const c=$('#mfccCanvas'),x=c.getContext('2d'); const rows=series.mfcc||[]; const w=c.width,h=c.height; x.clearRect(0,0,w,h); x.fillStyle=css('--color-surface-2'); x.fillRect(0,0,w,h); if(!rows.length) return; const coeffs=13, cellW=w/rows.length, cellH=h/coeffs; const perCoeff=[]; for(let k=0;k<coeffs;k++) perCoeff.push(normalizeSeries(rows.map(r=>r[k]||0))); for(let i=0;i<rows.length;i++){ for(let k=0;k<coeffs;k++){ x.fillStyle=heatColor(perCoeff[k][i]); x.fillRect(i*cellW, h-(k+1)*cellH, Math.ceil(cellW)+1, Math.ceil(cellH)+1); } } x.fillStyle=css('--color-text'); x.font='500 11px "Instrument Sans", system-ui, sans-serif'; for(let k=0;k<coeffs;k+=2) x.fillText('c'+(k+1),6,h-(k+0.35)*cellH); }
+function drawPitchHeatmap(series){ const c=$('#pitchHeatmapCanvas'),x=c.getContext('2d'); const midi=series.midiTrack||[]; const w=c.width,h=c.height; x.clearRect(0,0,w,h); x.fillStyle=css('--color-surface-2'); x.fillRect(0,0,w,h); const valid=midi.filter(v=>v!=null); if(!valid.length) return; const min=Math.floor(Math.min(...valid)), max=Math.ceil(Math.max(...valid)); const bins=Math.max(12,max-min+1); const grid=Array.from({length:bins},()=>Array(midi.length).fill(0)); midi.forEach((v,i)=>{ if(v!=null){ const idx=Math.max(0,Math.min(bins-1,Math.round(v)-min)); grid[idx][i]=1; if(idx>0) grid[idx-1][i]=Math.max(grid[idx-1][i],0.25); if(idx<bins-1) grid[idx+1][i]=Math.max(grid[idx+1][i],0.25); }}); const cellW=w/midi.length, cellH=h/bins; for(let r=0;r<bins;r++){ for(let i=0;i<midi.length;i++){ x.fillStyle=grid[r][i]?heatColor(grid[r][i]):css('--color-surface-3'); x.fillRect(i*cellW,h-(r+1)*cellH,Math.ceil(cellW)+1,Math.ceil(cellH)+1); } } x.fillStyle=css('--color-text'); x.font='500 11px "Instrument Sans", system-ui, sans-serif'; const step=Math.max(1,Math.ceil((max-min)/8)); for(let p=min;p<=max;p+=step){ const y=h-((p-min)+0.35)*cellH; x.fillText('MIDI '+p,6,y); } }
+
+function bar(label,score,kind){ const pct=Math.round((score||0)*100); return '<div><div class="row tiny"><span>'+label+'</span><span>'+pct+'%</span></div><div class="bar '+kind+'"><span style="width:'+pct+'%"></span></div></div>'; }
+
+function explainPair(pair){
+  const overall=Math.round(pair.overall*100), timbre=Math.round(pair.timbre*100), melody=Math.round(pair.melody*100), harmony=Math.round(pair.rhythm*100);
+  const strongest=[['timbre',timbre],['melody',melody],['harmony',harmony]].sort((a,b)=>b[1]-a[1])[0][0];
+  const weakest=[['timbre',timbre],['melody',melody],['harmony',harmony]].sort((a,b)=>a[1]-b[1])[0][0];
+  const openersHigh=[
+    'These clips form one of the clearest matches in this batch, with multiple features pointing in the same direction.',
+    'This pair stands out as a strong overall match, suggesting the clips share meaningful musical structure rather than only a surface resemblance.',
+    'The overall similarity is notably high here, so this pair deserves close attention as a genuinely similar comparison.',
+    'This comparison suggests a strong relationship between the clips across more than one musical dimension.'
+  ];
+  const openersMid=[
+    'This pair shows a partial match rather than a full one, which means some layers line up while others still pull apart.',
+    'There is a noticeable overlap here, but it is uneven across the different features rather than consistently strong.',
+    'The clips share meaningful similarities, although the match remains mixed instead of fully convincing from every angle.',
+    'This comparison sits in the middle, with enough overlap to matter but enough difference to keep the pair from feeling clearly close.'
+  ];
+  const openersLow=[
+    'These clips are not especially close overall, because the features point to more separation than alignment.',
+    'The overall match is fairly weak in this batch, so any resemblance appears limited rather than broad.',
+    'This pair appears more different than similar once the musical features are compared side by side.',
+    'There is only limited overlap across the measured features, which keeps the result from reading as a strong match.'
+  ];
+  const strongLines={
+    timbre:[
+      'Timbre is doing most of the work, so tone colour, brightness balance, and general texture are relatively aligned.',
+      'The strongest agreement comes from timbre, suggesting the clips share a similar surface sound even before deeper musical structure is considered.',
+      'Their closest connection is timbral, with spectral colour and texture carrying much of the similarity signal.'
+    ],
+    melody:[
+      'Melody is the clearest point of overlap, so pitch movement and contour are likely driving the match more than surface sound.',
+      'The strongest agreement sits in melody, suggesting related interval movement, contour shape, or note-to-note direction across time.',
+      'Melodic shape is the biggest reason this pair feels connected, with the pitch path contributing more than the timbral shell.'
+    ],
+    harmony:[
+      'Harmony leads the match, pointing to related tonal organisation, note-centre behaviour, or pitch-class balance.',
+      'The strongest overlap is harmonic, suggesting the clips pull toward similar note collections or tonal centres.',
+      'Their harmonic profile is the most aligned part of the comparison, so the deeper tonal framework appears more similar than the surface details.'
+    ]
+  };
+  const weakLines={
+    timbre:[
+      'Timbre is the weakest area, so sound colour still separates them even if part of the musical idea overlaps.',
+      'The main gap is timbral, which can happen when instrumentation or production differ even while other structures match better.',
+      'Surface texture is the loosest match here, meaning the clips may share musical structure without immediately sounding alike.'
+    ],
+    melody:[
+      'Melody is the weakest area, so the pitch path still differs enough to limit how close the pair feels.',
+      'The biggest separation is melodic, suggesting different contour, interval motion, or note-order behaviour across the clips.',
+      'Pitch motion is the main factor keeping these clips apart, even if another dimension shows stronger agreement.'
+    ],
+    harmony:[
+      'Harmony is the weakest area, so the tonal framework is less aligned than the other features.',
+      'The biggest gap shows up in harmony, suggesting different tonal grounding or note-centre behaviour beneath the surface.',
+      'Their harmonic organisation differs the most, even though another feature may still create a partial resemblance.'
+    ]
+  };
+  const interpret=[];
+  if(overall>=75) interpret.push('Taken together, the score profile suggests broad agreement rather than a single lucky overlap.');
+  else if(overall>=50) interpret.push('Taken together, the score profile looks mixed — the pair may share a recognisable idea without behaving like near-neighbours overall.');
+  else interpret.push('Taken together, the score profile suggests that any resemblance is narrow and does not extend strongly across the wider feature set.');
+  if(Math.abs(melody-harmony)<=8&&melody>=60&&harmony>=60) interpret.push('Melody and harmony also sit fairly close to each other, which usually makes the musical identity feel more consistently related.');
+  if(timbre>=75&&melody<55) interpret.push('Part of the result may come from similar sonic packaging rather than from strongly matching pitch behaviour.');
+  if(melody>=75&&timbre<55) interpret.push('That pattern often means the musical idea is closer than the production or instrument colour.');
+  if(harmony>=75&&melody<60) interpret.push('This can happen when the clips share tonal grounding even though the exact melodic route differs.');
+  const pick=(arr,seed)=>arr[Math.abs(seed)%arr.length];
+  const opener=pick(overall>=72?openersHigh:overall>=48?openersMid:openersLow, overall+timbre+melody+harmony);
+  const strong=pick(strongLines[strongest], overall+timbre);
+  const weak=pick(weakLines[weakest], timbre+melody+harmony);
+  return '<span class="pair-conclusion"><strong>Conclusion: '+opener+'</strong> '+strong+' '+weak+' '+interpret.join(' ')+' Overall similarity is '+overall+'%, with timbre at '+timbre+'%, melody at '+melody+'%, and harmony at '+harmony+'%.</span>';
+}
+
+function renderPairBreakdowns(){
+  const analyzed=state.files.filter(f=>f.analysis);
+  const list=$('#compareList');
+  if(analyzed.length<2){ list.innerHTML='<div class="compare-row"><div class="muted small">Pair breakdowns appear once at least two files have been analyzed.</div></div>'; return; }
+  const pairs=buildNormalizedPairs(analyzed);
+  pairs.sort((a,b)=>b.overall-a.overall);
+  list.innerHTML=pairs.map(pair=>'<article class="compare-row">'
+    +'<div class="row"><div class="row"><strong>'+escapeHtml(pair.a.name)+'</strong><span class="pill">vs</span><strong>'+escapeHtml(pair.b.name)+'</strong></div><span class="pill">Overall '+Math.round(pair.overall*100)+'%</span></div>'
+    +'<div class="small muted">'+explainPair(pair)+'</div>'
+    +'<div class="score-grid">'
+    +bar('Overall',pair.overall,'overall')
+    +bar('Timbre',pair.timbre,'timbre')
+    +bar('Melody',pair.melody,'melody')
+    +bar('Harmony',pair.rhythm,'rhythm')
+    +'</div>'
+    +'</article>').join('');
+}
+
+function renderBottomGraph(){ syncSelects(); syncGraphFileChecks(); const files=graphFiles(); const c=graphCanvas,x=c.getContext('2d'); const w=c.width,h=c.height; state.graph.hoverPoints=[]; x.clearRect(0,0,w,h); x.fillStyle='#fff'; x.fillRect(0,0,w,h); const yAxisX = 240 + state.graph.panX; const maxAxisX = 380; const boundedAxisX = Math.min(maxAxisX, yAxisX); if(boundedAxisX !== yAxisX){ state.graph.panX = boundedAxisX - 240; } const centerX = 240 + state.graph.panX; const centerY = h*0.58; const timeScale = 180 * state.graph.zoom; const freqScale = ((centerY-70) / 5000); const dbScale = ((h-centerY-70) / 100); x.strokeStyle='rgba(31,41,55,0.07)'; x.lineWidth=1; const maxTime=Math.max(10,...files.map(f=>f.analysis.durationSec||0)); for(let t=0;t<=maxTime;t+=state.graph.zoom<0.8?5:1){ const px=centerX + t*timeScale; if(px<0||px>w) continue; x.beginPath(); x.moveTo(px,0); x.lineTo(px,h); x.stroke(); } for(let f=500;f<=5000;f+=state.graph.zoom<0.8?500:250){ const py=state.graph.flipped ? centerY + f*freqScale : centerY - f*freqScale; if(py<0||py>h) continue; x.beginPath(); x.moveTo(centerX,py); x.lineTo(w,py); x.stroke(); } for(let d=10;d<=100;d+=state.graph.zoom<1?20:10){ const py=state.graph.flipped ? centerY - d*dbScale : centerY + d*dbScale; if(py<0||py>h) continue; x.beginPath(); x.moveTo(centerX,py); x.lineTo(w,py); x.stroke(); } x.strokeStyle='rgba(15,23,42,0.88)'; x.lineWidth=2.2; x.beginPath(); x.moveTo(centerX,centerY); x.lineTo(w,centerY); x.moveTo(centerX,0); x.lineTo(centerX,h); x.stroke(); x.save(); x.fillStyle='rgba(15,23,42,0.88)'; x.font='600 13px Inter, sans-serif'; x.fillText('Time', Math.min(w-70, centerX+18), centerY-14); if(!state.graph.flipped){ x.fillText('Frequency', centerX+12, 24); x.fillText('Decibels', centerX+12, h-18); } else { x.fillText('Decibels', centerX+12, 24); x.fillText('Frequency', centerX+12, h-18); } x.restore(); x.fillStyle='rgba(15,23,42,0.75)'; x.font='11px Inter, sans-serif'; x.textAlign='center'; x.textBaseline='top'; for(let t=0;t<=maxTime;t+=state.graph.zoom<0.8?5:1){ const px=centerX+t*timeScale; if(px<centerX||px>w) continue; x.fillText(t+' s', px, centerY+8); } x.textAlign='right'; x.textBaseline='middle'; for(let f=500;f<=5000;f+=state.graph.zoom<0.8?500:250){ const py=state.graph.flipped ? centerY + f*freqScale : centerY - f*freqScale; if(py<0||py>h) continue; x.fillText(f+' Hz', centerX-8, py); } for(let d=10;d<=100;d+=state.graph.zoom<1?20:10){ const py=state.graph.flipped ? centerY - d*dbScale : centerY + d*dbScale; if(py<0||py>h) continue; x.fillText(d+' dB', centerX-8, py); } function drawSeries(file, values, metric, color, alpha){ x.save(); x.strokeStyle=color; x.lineWidth=metric==='frequency'?2.8:2.4; x.globalAlpha=alpha; x.lineJoin='round'; x.lineCap='round'; x.beginPath(); let drawn=0; for(let i=0;i<values.length;i++){ const value=values[i]; const time=i*0.01; if(value==null || !Number.isFinite(value)) continue; const px=centerX + time*timeScale; if(px<centerX || px>w) continue; const py = metric==='frequency' ? (state.graph.flipped ? centerY + value*freqScale : centerY - value*freqScale) : (state.graph.flipped ? centerY - Math.abs(value)*dbScale : centerY + Math.abs(value)*dbScale); if(drawn===0) x.moveTo(px,py); else x.lineTo(px,py); drawn++; if(i%4===0) state.graph.hoverPoints.push({x:px,y:py,file:file.name,type:metric==='frequency'?'Frequency':'Decibels',time,value,unit:metric==='frequency'?'Hz':'dB'}); } if(drawn>1) x.stroke(); x.restore(); } files.forEach((file,idx)=>{ const colors=trackColorFor(file.id,idx); drawSeries(file, file.analysis.series.freqTrack||[], 'frequency', colors.freq, 0.95); drawSeries(file, file.analysis.series.dbTrack||[], 'db', colors.db, 0.72); }); if(state.graph.playheadTime!=null){ const px = centerX + state.graph.playheadTime*timeScale; if(px>=centerX && px<=w){ x.save(); x.strokeStyle='#dc2626'; x.lineWidth=2; x.beginPath(); x.moveTo(px, 16); x.lineTo(px, h-16); x.stroke(); x.fillStyle='#dc2626'; x.beginPath(); x.moveTo(px-6, 14); x.lineTo(px+6, 14); x.lineTo(px, 24); x.closePath(); x.fill(); x.fillStyle='rgba(220,38,38,0.96)'; x.font='600 11px Inter, sans-serif'; x.textAlign='left'; x.textBaseline='top'; x.fillText(state.graph.playheadTime.toFixed(2)+' s', Math.min(w-72, px+8), 14); x.restore(); } } }
+
+function renderAll(){ renderLibrary(); renderDashboard(); renderPairBreakdowns(); syncGraphFileChecks(); renderBottomGraph(); }
+renderAll();
+</script>
+</body>
+</html>
